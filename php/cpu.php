@@ -16,7 +16,7 @@ $conn->set_charset("utf8");
 $gehaeuse = $_POST['gehaeuse'] ?? '';
 
 // Hersteller-Filter übernehmen
-$hersteller = $_POST['hersteller'] ?? 'Intel';
+$hersteller = $_GET['hersteller'] ?? ($_POST['hersteller'] ?? 'Intel');
 
 // CPU-Daten abfragen
 $sql = "SELECT * FROM cpus WHERE hersteller = ?";

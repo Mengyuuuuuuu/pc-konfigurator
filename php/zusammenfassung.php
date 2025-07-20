@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // POST-Daten aus den vorherigen Schritten empfangen
-$gehaeuse = $_POST['gehaeuse'] ?? '';
+$gehaeuse = $_SESSION['gehaeuse'] ?? '';
 $cpu = $_POST['cpu'] ?? '';
 $ram = $_POST['ram'] ?? '';
 $zubehoer = $_POST['zubehoer'] ?? []; // Array von Zubehör-IDs
@@ -28,7 +28,8 @@ if ($mysqli->connect_error) {
 $mysqli->set_charset("utf8");
 
 // Benutzeradresse aus der Tabelle 'benutzer' laden
-$stmt = $mysqli->prepare("SELECT nachname, ort, strasse, plz FROM benutzer WHERE id = ?");
+$stmt = $mysqli->prepare("SELECT vorname, nachname, ort, strasse, plz FROM benutzer WHERE id = ?");
+
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user_result = $stmt->get_result()->fetch_assoc();
