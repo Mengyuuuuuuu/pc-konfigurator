@@ -1,5 +1,11 @@
 <?php
 include_once("includes/header.php");
+session_start();
+
+if (isset($_POST['gehaeuse'])) {
+    $_SESSION['gehaeuse'] = $_POST['gehaeuse']; //  gehaeuse in session speichern
+}
+
 // Datenbankverbindung
 $host = 'localhost';
 $user = 'root';
