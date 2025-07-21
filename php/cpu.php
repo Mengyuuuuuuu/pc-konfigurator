@@ -18,9 +18,6 @@ if ($conn->connect_error) {
 }
 $conn->set_charset("utf8");
 
-// Gehäuse-Wert von Schritt 2  übernehmen
-$gehaeuse = $_POST['gehaeuse'] ?? '';
-
 // Hersteller-Filter übernehmen
 $hersteller = $_GET['hersteller'] ?? ($_POST['hersteller'] ?? 'Intel');
 
@@ -31,6 +28,7 @@ $stmt->bind_param("s", $hersteller);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="de">
@@ -47,8 +45,8 @@ $result = $stmt->get_result();
 
     <!-- Hersteller-Filter -->
     <div class="mb-3">
-      <a href="?hersteller=Intel&gehaeuse=<?= urlencode($gehaeuse) ?>" class="me-3">Intel</a>
-      <a href="?hersteller=AMD&gehaeuse=<?= urlencode($gehaeuse) ?>">AMD</a>
+      <a href="?hersteller=Intel" class="me-3">Intel</a>
+      <a href="?hersteller=AMD">AMD</a>
     </div>
 
     <!-- CPU-Tabelle -->
@@ -70,9 +68,9 @@ $result = $stmt->get_result();
             <td><?= number_format($row['preis'], 2, ',', '.') ?> €</td>
             <td><?= intval($row['max_ram']) ?> GB</td>
             <td>
+              <!-- ✅ nur um CPU weiterzugeben，die anderen Werte sind schon in der Session -->
               <form method="post" action="ram.php">
                 <input type="hidden" name="cpu" value="<?= htmlspecialchars($row['modell']) ?>">
-                <input type="hidden" name="gehaeuse" value="<?= htmlspecialchars($gehaeuse) ?>">
                 <button type="submit" class="btn btn-outline-primary btn-sm">auswählen und weiter</button>
               </form>
             </td>

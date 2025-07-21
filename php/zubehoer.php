@@ -1,7 +1,12 @@
 <?php
 // Schritt 5 – Zubehörauswahl
-
+session_start();
 include_once("includes/header.php");
+
+//  RAM in Session speichern
+if (isset($_POST['ram'])) {
+    $_SESSION['ram'] = $_POST['ram'];
+}
 // Verbindung zur Datenbank
 $mysqli = new mysqli("localhost", "root", "", "mustermann");
 if ($mysqli->connect_error) {
@@ -9,15 +14,23 @@ if ($mysqli->connect_error) {
 }
 $mysqli->set_charset("utf8");
 
-// Schritt-4-Daten empfangen
-$cpu = $_POST['cpu'] ?? '';
-$ram = $_POST['ram'] ?? '';
-$gehaeuse = $_POST['gehaeuse'] ?? '';
+// ⬇️ Schritt-5-Daten speichern（from POST）
+// Speichern die Auswahl in der Session
+if (isset($_POST['zubehoer']) || isset($_POST['ausstattung'])) {
+    $_SESSION['zubehoer'] = $_POST['zubehoer'] ?? [];
+    $_SESSION['ausstattung'] = $_POST['ausstattung'] ?? [];
 
-// Daten abfragen
+    // ✅ Jetzt weiterleiten zu Schritt 6 nach submission
+    header("Location: software.php");
+    exit();
+}
+
+
+// ⬇️ Daten aus DB laden
 $zubehoerResult = $mysqli->query("SELECT * FROM zubehoer");
 $ausstattungResult = $mysqli->query("SELECT * FROM ausstattung");
 ?>
+
 
 <!DOCTYPE html>
 <html lang="de">
@@ -25,19 +38,14 @@ $ausstattungResult = $mysqli->query("SELECT * FROM ausstattung");
     <meta charset="UTF-8">
     <title>PC-Konfigurator – Schritt 5: Zubehör</title>
     <link href="../bootstrap5.3/css/bootstrap.min.css" rel="stylesheet">
-    
 </head>
 <body>
 <main class="container py-5">
     <h1 class="display-5 fw-bold">PC-Konfigurator</h1>
     <h2 class="fs-4 mb-4">Schritt 5 von 5: Zubehör / Ausstattung</h2>
 
-    <form method="post" action="software.php">
-        <!-- hidden fields zur Weitergabe -->
-        <input type="hidden" name="cpu" value="<?= htmlspecialchars($cpu) ?>">
-        <input type="hidden" name="ram" value="<?= htmlspecialchars($ram) ?>">
-        <input type="hidden" name="gehaeuse" value="<?= htmlspecialchars($gehaeuse) ?>">
-
+    <form method="post">
+        <!-- Zubehör -->
         <div class="row">
             <h4>Zubehör</h4>
             <?php while ($row = $zubehoerResult->fetch_assoc()): ?>
@@ -61,6 +69,7 @@ $ausstattungResult = $mysqli->query("SELECT * FROM ausstattung");
             <?php endwhile; ?>
         </div>
 
+        <!-- Ausstattung -->
         <div class="row mt-5">
             <h4>Ausstattung</h4>
             <?php while ($row = $ausstattungResult->fetch_assoc()): ?>
@@ -85,10 +94,7 @@ $ausstattungResult = $mysqli->query("SELECT * FROM ausstattung");
         </div>
 
         <div class="mt-4">
-            <a href="ram.php?cpu=<?= urlencode($cpu) ?>&gehaeuse=<?= urlencode($gehaeuse) ?>" class="btn btn-secondary">
-               Zurück zu Schritt 4
-            </a>
-
+            <a href="ram.php" class="btn btn-secondary">Zurück zu Schritt 4</a>
             <button type="submit" class="btn btn-primary">Weiter zu Schritt 6</button>
         </div>
     </form>
@@ -97,7 +103,4 @@ $ausstattungResult = $mysqli->query("SELECT * FROM ausstattung");
 </body>
 </html>
 
-<?php
-include_once("includes/footer.php");
-?>
-
+<?php include_once("includes/footer.php"); ?>

@@ -1,12 +1,18 @@
 <?php
-// step4_ram.php
+// step4 - Ramauswahl
 include_once("includes/header.php");
+session_start();
 
-$cpu = $_POST['cpu'] ?? null;
-$gehaeuse = $_POST['gehaeuse'] ?? null;
+// 1️⃣ cpu in session speichern
+if (isset($_POST['cpu'])) {
+    $_SESSION['cpu'] = $_POST['cpu'];
+}
+
+// 2️⃣ das gespeicherte CPU-Modell aus der Session holen
+$cpu = $_SESSION['cpu'] ?? null;
 $maxRam = 128; // fallback-Wert
 
-// Verbindung zur Datenbank
+// 3️⃣ abfragen max_ram für die gewählte CPU
 $conn = new mysqli("localhost", "root", "", "mustermann");
 $conn->set_charset("utf8");
 
@@ -21,6 +27,7 @@ if ($cpu) {
 }
 $conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="de">
@@ -41,11 +48,9 @@ $conn->close();
     <h1 class="display-5 fw-bold">PC-Konfigurator</h1>
     <h2 class="fs-4 mb-4">Schritt 4 von 5: Arbeitsspeicher</h2>
 
+    <!-- 🟢 an Schritt 5 übergeben -->
     <form action="zubehoer.php" method="post">
-      <!-- Weitergabe bisheriger Auswahl -->
-      <input type="hidden" name="cpu" value="<?= htmlspecialchars($cpu) ?>">
-      <input type="hidden" name="gehaeuse" value="<?= htmlspecialchars($gehaeuse) ?>">
-
+      <!-- 🟢 Verwendung von RAM -->
       <label for="ram" class="form-label">Arbeitsspeicher wählen (max. <?= $maxRam ?> GB):</label>
       <select class="form-select w-25 mb-3" name="ram" id="ram" onchange="updatePreis()">
         <?php
@@ -61,12 +66,10 @@ $conn->close();
       <button type="submit" class="btn btn-primary">Weiter zu Schritt 5</button>
     </form>
   </main>
+
   <script>updatePreis();</script>
   <script src="../bootstrap5.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 
-<?php
-include_once("includes/footer.php");
-?>
-
+<?php include_once("includes/footer.php"); ?>

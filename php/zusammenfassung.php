@@ -9,16 +9,14 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-
-// POST-Daten aus den vorherigen Schritten empfangen
 $gehaeuse = $_SESSION['gehaeuse'] ?? '';
-$cpu = $_POST['cpu'] ?? '';
-$ram = $_POST['ram'] ?? '';
-$zubehoer = $_POST['zubehoer'] ?? []; // Array von Zubehör-IDs
-$ausstattung = $_POST['ausstattung'] ?? []; // Array von Ausstattungs-IDs
-$os = $_POST['os'] ?? '';
-$software = $_POST['software'] ?? []; // Array von Software-IDs
-$monitore = $_POST['monitore'] ?? []; // Array von Monitor-IDs
+$cpu = $_SESSION['cpu'] ?? '';
+$ram = $_SESSION['ram'] ?? '';
+$zubehoer = $_SESSION['zubehoer'] ?? [];
+$ausstattung = $_SESSION['ausstattung'] ?? [];
+$os = $_SESSION['os'] ?? '';
+$software = $_SESSION['software'] ?? [];
+$monitore = $_SESSION['monitore'] ?? [];
 
 // Verbindung zur Datenbank
 $mysqli = new mysqli("localhost", "root", "", "mustermann");
@@ -27,27 +25,50 @@ if ($mysqli->connect_error) {
 }
 $mysqli->set_charset("utf8");
 
-// Benutzeradresse aus der Tabelle 'benutzer' laden
+// Benutzeradresse auslesen
 $stmt = $mysqli->prepare("SELECT vorname, nachname, ort, strasse, plz FROM benutzer WHERE id = ?");
-
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user_result = $stmt->get_result()->fetch_assoc();
 
-// Arrays zu Strings konvertieren (zur Vereinfachung)
+$gesamtpreis = 0.00;
+
+// ✅ CPU aus Datenbank laden
+$cpu_preis = 0.00;
+$cpu_modell = htmlspecialchars($cpu);
+if ($cpu) {
+    $stmt = $mysqli->prepare("SELECT modell, preis FROM cpus WHERE modell = ?");
+    $stmt->bind_param("s", $cpu);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    if ($result) {
+        $cpu_modell = $result['modell'];
+        $cpu_preis = (float) $result['preis'];
+        $gesamtpreis += $cpu_preis;
+    }
+}
+
+// Bestellung speichern
+$insert = $mysqli->prepare("
+    INSERT INTO bestellung 
+    (benutzer_id, gehaeuse, cpu, ram, zubehoer, ausstattung, os, software, monitore, bestelldatum, gesamtpreis) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
+");
 $zubehoer_str = implode(',', $zubehoer);
 $ausstattung_str = implode(',', $ausstattung);
 $software_str = implode(',', $software);
 $monitore_str = implode(',', $monitore);
-
-// Bestellung in der Tabelle 'bestellung' speichern
-$insert = $mysqli->prepare("
-    INSERT INTO bestellung 
-    (benutzer_id, gehaeuse, cpu, ram, zubehoer, ausstattung, os, software, monitore, bestelldatum) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-");
-$insert->bind_param("issssssss", $user_id, $gehaeuse, $cpu, $ram, $zubehoer_str, $ausstattung_str, $os, $software_str, $monitore_str);
+$insert->bind_param("issssssssd", $user_id, $gehaeuse, $cpu, $ram, $zubehoer_str, $ausstattung_str, $os, $software_str, $monitore_str, $gesamtpreis);
 $insert->execute();
+
+// Bei finaler Bestellung: Session bereinigen
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm'])) {
+    $benutzer_session = $_SESSION['user_id'];
+    session_unset();
+    session_destroy();
+    session_start();
+    $_SESSION['user_id'] = $benutzer_session;
+}
 ?>
 
 <!DOCTYPE html>
@@ -70,105 +91,141 @@ $insert->execute();
         </p>
     </div>
 
-    <hr class="my-4"> <!-- a horizontal line-->
- 
+    <hr class="my-4">
+
     <div class="mb-4">
         <h4>Ihre Auswahl:</h4>
         <ul>
-            <li><strong>Gehäuse:</strong> <?= htmlspecialchars($gehaeuse) ?></li>
-            <li><strong>CPU:</strong> <?= htmlspecialchars($cpu) ?></li>
-            <li><strong>RAM:</strong> <?= htmlspecialchars($ram) ?> GB</li>
+            <?php
+               $gehaeusePreise = [
+                 'desktop' => 49.99,
+                 'midi' => 59.99,
+                 'maxi' => 89.99
+       ];
+$gehaeuseNamen = [
+  'desktop' => 'Desktop',
+  'midi' => 'Midi-Tower',
+  'maxi' => 'Maxi-Tower'
+           ];
+$gehaeusePreis = $gehaeusePreise[$gehaeuse] ?? 0.00;
+$gehaeuseName = $gehaeuseNamen[$gehaeuse] ?? $gehaeuse;
+$gesamtpreis += $gehaeusePreis;
+?>
+
+<li><strong>Gehäuse:</strong> <?= htmlspecialchars($gehaeuseName) ?> (<?= number_format($gehaeusePreis, 2, ',', '.') ?> €)</li>
+
+            <li><strong>CPU:</strong> <?= htmlspecialchars($cpu_modell) ?> (<?= number_format($cpu_preis, 2, ',', '.') ?> €)</li>
+
+            <?php
+  $ramInt = (int) $ram;
+$ramPreis = $ramInt * 0.8;
+$gesamtpreis += $ramPreis;
+?>
+            <li><strong>RAM:</strong> <?= htmlspecialchars($ramInt) ?> GB (<?= number_format($ramPreis, 2, ',', '.') ?> €)</li>            
             <li><strong>Zubehör:</strong>
                 <ul>
                 <?php
-                if (!empty($zubehoer)) {
-                    $ids = implode(',', array_map('intval', $zubehoer));
-                    $result = $mysqli->query("SELECT name, beschreibung, preis FROM zubehoer WHERE id IN ($ids)");
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
-                    }
-                } else {
-                    echo "<li>Keine Auswahl</li>";
-                }
-                ?>
+    if (!empty($zubehoer)) {
+        $ids = implode(',', array_map('intval', $zubehoer));
+        $result = $mysqli->query("SELECT name, beschreibung, preis FROM zubehoer WHERE id IN ($ids)");
+        while ($row = $result->fetch_assoc()) {
+            $gesamtpreis += $row['preis'];
+            echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
+        }
+    } else {
+        echo "<li>Keine Auswahl</li>";
+    }
+?>
                 </ul>
             </li>
+
             <li><strong>Ausstattung:</strong>
                 <ul>
                 <?php
-                if (!empty($ausstattung)) {
-                    $ids = implode(',', array_map('intval', $ausstattung));
-                    $result = $mysqli->query("SELECT name, beschreibung, preis FROM ausstattung WHERE id IN ($ids)");
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
-                    }
-                } else {
-                    echo "<li>Keine Auswahl</li>";
-                }
-                ?>
+if (!empty($ausstattung)) {
+    $ids = implode(',', array_map('intval', $ausstattung));
+    $result = $mysqli->query("SELECT name, beschreibung, preis FROM ausstattung WHERE id IN ($ids)");
+    while ($row = $result->fetch_assoc()) {
+        $gesamtpreis += $row['preis'];
+        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
+    }
+} else {
+    echo "<li>Keine Auswahl</li>";
+}
+?>
                 </ul>
             </li>
+
             <li><strong>Betriebssystem:</strong>
                 <ul>
                 <?php
-                if (!empty($os)) {
-                    $result = $mysqli->query("SELECT name, beschreibung, preis FROM os WHERE id = " . intval($os));
-                    if ($row = $result->fetch_assoc()) {
-                        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
-                    }
-                } else {
-                    echo "<li>Keine Auswahl</li>";
-                }
-                ?>
+if (!empty($os)) {
+    $result = $mysqli->query("SELECT name, beschreibung, preis FROM os WHERE id = " . intval($os));
+    if ($row = $result->fetch_assoc()) {
+        $gesamtpreis += $row['preis'];
+        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
+    }
+} else {
+    echo "<li>Keine Auswahl</li>";
+}
+?>
                 </ul>
             </li>
+
             <li><strong>Software:</strong>
                 <ul>
                 <?php
-                if (!empty($software)) {
-                    $ids = implode(',', array_map('intval', $software));
-                    $result = $mysqli->query("SELECT name, beschreibung, preis FROM software WHERE id IN ($ids)");
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
-                    }
-                } else {
-                    echo "<li>Keine Auswahl</li>";
-                }
-                ?>
+if (!empty($software)) {
+    $ids = implode(',', array_map('intval', $software));
+    $result = $mysqli->query("SELECT name, beschreibung, preis FROM software WHERE id IN ($ids)");
+    while ($row = $result->fetch_assoc()) {
+        $gesamtpreis += $row['preis'];
+        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['beschreibung']) . " (" . number_format($row['preis'], 2, ',', '.') . " €)</li>";
+    }
+} else {
+    echo "<li>Keine Auswahl</li>";
+}
+?>
                 </ul>
             </li>
+
             <li><strong>Monitor:</strong>
                 <ul>
                 <?php
-                if (!empty($monitore)) {
-                    $ids = implode(',', array_map('intval', $monitore));
-                    $result = $mysqli->query("SELECT name, groesse_zoll, preis FROM monitore WHERE id IN ($ids)");
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['groesse_zoll']) . ' Zoll (' . number_format($row['preis'], 2, ',', '.') . " €)</li>";
-                    }
-                } else {
-                    echo "<li>Keine Auswahl</li>";
-                }
-                ?>
+if (!empty($monitore)) {
+    $ids = implode(',', array_map('intval', $monitore));
+    $result = $mysqli->query("SELECT name, groesse_zoll, preis FROM monitore WHERE id IN ($ids)");
+    while ($row = $result->fetch_assoc()) {
+        $gesamtpreis += $row['preis'];
+        echo "<li>" . htmlspecialchars($row['name']) . " – " . htmlspecialchars($row['groesse_zoll']) . ' Zoll (' . number_format($row['preis'], 2, ',', '.') . " €)</li>";
+    }
+} else {
+    echo "<li>Keine Auswahl</li>";
+}
+?>
                 </ul>
             </li>
+
+             <li class="mt-3"><strong>Gesamtpreis:</strong> <span class="text-success"><?= number_format($gesamtpreis, 2, ',', '.') ?> €</span></li>
         </ul>
     </div>
 
     <div class="alert alert-success">
         ✅ Die Bestellung wurde erfolgreich gespeichert.
     </div>
-   
-    <div class="mt-4 d-flex gap-2">
-    <a href="monitor.php" class="btn btn-secondary">Zurück zu Schritt 7</a>
-    <button class="btn btn-danger" disabled>Jetzt kostenpflichtig bestellen</button>
-</div>
 
+    <form method="post">
+        <div class="mt-4 d-flex gap-2">
+            <a href="monitor.php" class="btn btn-secondary">Zurück zu Schritt 7</a>
+            <button type="submit" name="confirm" class="btn btn-danger">Jetzt kostenpflichtig bestellen</button>
+        </div>
+    </form>
 </main>
 <script src="../bootstrap5.3/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 
 <?php
+$mysqli->close();
 include_once("includes/footer.php");
 ?>
