@@ -14,7 +14,7 @@ $database = 'mustermann';
 
 $conn = new mysqli($host, $user, $password, $database);
 if ($conn->connect_error) {
-  die("Verbindung fehlgeschlagen: " . $conn->connect_error);
+    die("Verbindung fehlgeschlagen: " . $conn->connect_error);
 }
 $conn->set_charset("utf8");
 
@@ -61,7 +61,7 @@ $result = $stmt->get_result();
         </tr>
       </thead>
       <tbody>
-        <?php while($row = $result->fetch_assoc()): ?>
+        <?php while ($row = $result->fetch_assoc()): ?>
           <tr>
             <td><?= htmlspecialchars($row['modell']) ?></td>
             <td><?= htmlspecialchars($row['produktnummer']) ?></td>
@@ -69,8 +69,8 @@ $result = $stmt->get_result();
             <td><?= intval($row['max_ram']) ?> GB</td>
             <td>
               <!-- ✅ nur um CPU weiterzugeben，die anderen Werte sind schon in der Session -->
-              <form method="post" action="ram.php">
-                <input type="hidden" name="cpu" value="<?= htmlspecialchars($row['modell']) ?>">
+              <form method="post" action="ram.php">               
+                <input type="hidden" name="cpu" value="<?= (int)$row['id'] ?>">
                 <button type="submit" class="btn btn-outline-primary btn-sm">auswählen und weiter</button>
               </form>
             </td>

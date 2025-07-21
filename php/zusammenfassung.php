@@ -35,31 +35,20 @@ $gesamtpreis = 0.00;
 
 // ✅ CPU aus Datenbank laden
 $cpu_preis = 0.00;
-$cpu_modell = htmlspecialchars($cpu);
-if ($cpu) {
-    $stmt = $mysqli->prepare("SELECT modell, preis FROM cpus WHERE modell = ?");
-    $stmt->bind_param("s", $cpu);
+$cpu_modell = '';
+if (!empty($cpu) && is_numeric($cpu)) {
+    $stmt = $mysqli->prepare("SELECT modell, preis FROM cpus WHERE id = ?");
+    $stmt->bind_param("i", $cpu); // id 是整數
     $stmt->execute();
-    $result = $stmt->get_result()->fetch_assoc();
-    if ($result) {
-        $cpu_modell = $result['modell'];
-        $cpu_preis = (float) $result['preis'];
+    $result = $stmt->get_result();
+
+    if ($result && $row = $result->fetch_assoc()) {
+        $cpu_modell = htmlspecialchars($row['modell']);
+        $cpu_preis = (float) $row['preis'];
         $gesamtpreis += $cpu_preis;
     }
 }
 
-// Bestellung speichern
-$insert = $mysqli->prepare("
-    INSERT INTO bestellung 
-    (benutzer_id, gehaeuse, cpu, ram, zubehoer, ausstattung, os, software, monitore, bestelldatum, gesamtpreis) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)
-");
-$zubehoer_str = implode(',', $zubehoer);
-$ausstattung_str = implode(',', $ausstattung);
-$software_str = implode(',', $software);
-$monitore_str = implode(',', $monitore);
-$insert->bind_param("issssssssd", $user_id, $gehaeuse, $cpu, $ram, $zubehoer_str, $ausstattung_str, $os, $software_str, $monitore_str, $gesamtpreis);
-$insert->execute();
 
 // Bei finaler Bestellung: Session bereinigen
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm'])) {
@@ -226,6 +215,21 @@ if (!empty($monitore)) {
 </html>
 
 <?php
+// ✅ Bestellung erst nach der Preisberechnung speichern
+$insert = $mysqli->prepare("
+    INSERT INTO bestellung 
+    (benutzer_id, gehaeuse, cpu, ram, zubehoer, ausstattung, os, software, monitore, gesamtpreis, bestelldatum) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+");
+
+$zubehoer_str = implode(',', $zubehoer);
+$ausstattung_str = implode(',', $ausstattung);
+$software_str = implode(',', $software);
+$monitore_str = implode(',', $monitore);
+$insert->bind_param("issssssssd", $user_id, $gehaeuse, $cpu, $ram, $zubehoer_str, $ausstattung_str, $os, $software_str, $monitore_str, $gesamtpreis);
+$insert->execute();
+
 $mysqli->close();
+
 include_once("includes/footer.php");
 ?>
