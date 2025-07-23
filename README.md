@@ -31,15 +31,15 @@ Dieses Projekt ist ein mehrstufiger PC-Konfigurator für die fiktive Firma *IT-M
    Rufe im Browser auf:
    http://localhost/pc-konfigurator/index.html
 
-   📁 bootstrap5.3        → Bootstrap CSS/JS
-   📁 img                 → Bilder und Icons
-   📁 js                  → Eigene JavaScript-Dateien
-   📁 php                 → PHP-Skripte für Login, Registrierung, Konfiguration
-   📁 sql                 → (optional) weitere SQL-Skripte
-   📄 mustermann.sql      → Datenbankstruktur und Beispieldaten
-   📄 index.html          → Startseite
-   📄 vorlage.html        → Beispielseite
-   📄 zusammenfassung.php → Abschlussübersicht
+   📁 bootstrap5.3        → Bootstrap CSS/JS  
+   📁 img                 → Bilder und Icons  
+   📁 js                  → Eigene JavaScript-Dateien  
+   📁 php                 → PHP-Skripte für Login, Registrierung, Konfiguration  
+   📁 sql                 → (optional) weitere SQL-Skripte  
+   📄 mustermann.sql      → Datenbankstruktur und Beispieldaten  
+   📄 index.html          → Startseite  
+   📄 vorlage.html        → Beispielseite  
+   📄 zusammenfassung.php → Abschlussübersicht  
 
 ## 🧪 Funktionalitäten
 ✅ Benutzerregistrierung mit E-Mail-Prüfung
@@ -52,9 +52,9 @@ Dieses Projekt ist ein mehrstufiger PC-Konfigurator für die fiktive Firma *IT-M
 
 ✅ Bootstrap für responsives Design
 
-## 👤 Autor
-Mengzyu Wang
-Fachbereich: Wirtschaftsinformatik 
-Abgabedatum: Juli 2025
+## 👩‍💻 Autorin 
+Mengyu Wang  
+Fachbereich: Wirtschaftsinformatik   
+Abgabedatum: Juli 2025  
 
 
